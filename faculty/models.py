@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from departments.models import Department
+from courses.models import Course
+from django.utils import timezone
 
 class Faculty(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -14,10 +16,30 @@ class Faculty(models.Model):
     contact_number = models.CharField(max_length=15)
     address = models.TextField()
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.get_full_name()} ({self.employee_id})"
+        return f"{self.user.get_full_name()} ({self.employee_id}) - {self.designation}"
 
     class Meta:
         verbose_name_plural = "Faculty"
         ordering = ['user__first_name']
+
+class FacultyCourseAssignment(models.Model):
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    semester = models.CharField(max_length=20)
+    academic_year = models.CharField(max_length=9)
+    is_primary_instructor = models.BooleanField(default=True)
+    assigned_date = models.DateField(default=timezone.now)
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_courses')
+    is_active = models.BooleanField(default=True)
+    remarks = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.faculty.user.get_full_name()} - {self.course.name}"
+
+    class Meta:
+        unique_together = ['faculty', 'course', 'semester', 'academic_year']
+        ordering = ['-academic_year', 'semester', 'faculty__user__first_name']

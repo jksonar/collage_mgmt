@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ student.user.get_full_name }} - Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    {% if student.user.profile.profile_picture %}
+                        <img src="{{ student.user.profile.profile_picture.url }}" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary mb-3 mx-auto" style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;">
+                            <span class="text-white" style="font-size: 3rem;">{{ student.user.get_initials }}</span>
+                        </div>
+                    {% endif %}
+                    <h4>{{ student.user.get_full_name }}</h4>
+                    <p class="text-muted">{{ student.roll_number }}</p>
+                    <p class="text-muted">{{ student.department.name }}</p>
+                    <p class="text-muted">{{ student.program.name }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Personal Information</h4>
+                    {% if request.user.profile.is_admin or request.user == student.user %}
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                            Edit Profile
+                        </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Date of Birth:</strong> {{ student.date_of_birth }}</p>
+                            <p><strong>Gender:</strong> {{ student.get_gender_display }}</p>
+                            <p><strong>Blood Group:</strong> {{ student.blood_group }}</p>
+                            <p><strong>Phone:</strong> {{ student.phone_number }}</p>
+                            <p><strong>Emergency Contact:</strong> {{ student.emergency_contact }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Nationality:</strong> {{ student.nationality }}</p>
+                            <p><strong>Religion:</strong> {{ student.religion }}</p>
+                            <p><strong>Address:</strong> {{ student.address }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Guardian Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Father's Name:</strong> {{ student.father_name }}</p>
+                            <p><strong>Mother's Name:</strong> {{ student.mother_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Guardian's Name:</strong> {{ student.guardian_name }}</p>
+                            <p><strong>Guardian's Relation:</strong> {{ student.guardian_relation }}</p>
+                            <p><strong>Guardian's Phone:</strong> {{ student.guardian_phone }}</p>
+                            <p><strong>Guardian's Address:</strong> {{ student.guardian_address }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Academic History</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Previous Qualification:</strong> {{ student.previous_qualification }}</p>
+                    <p><strong>Previous Institution:</strong> {{ student.previous_institution }}</p>
+                    <p><strong>Previous Marks:</strong> {{ student.previous_marks }}</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Enrollment History</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Program</th>
+                                    <th>Semester</th>
+                                    <th>Academic Year</th>
+                                    <th>Enrollment Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in enrollments %}
+                                <tr>
+                                    <td>{{ enrollment.program.name }}</td>
+                                    <td>{{ enrollment.semester }}</td>
+                                    <td>{{ enrollment.academic_year }}</td>
+                                    <td>{{ enrollment.enrollment_date }}</td>
+                                    <td>
+                                        {% if enrollment.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="profileForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.roll_number.id_for_label }}" class="form-label">Roll Number</label>
+                            {{ form.roll_number }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.department.id_for_label }}" class="form-label">Department</label>
+                            {{ form.department }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.program.id_for_label }}" class="form-label">Program</label>
+                            {{ form.program }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                            {{ form.date_of_birth }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                            {{ form.gender }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.blood_group.id_for_label }}" class="form-label">Blood Group</label>
+                            {{ form.blood_group }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                            {{ form.phone_number }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.emergency_contact.id_for_label }}" class="form-label">Emergency Contact</label>
+                            {{ form.emergency_contact }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                        {{ form.address }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.nationality.id_for_label }}" class="form-label">Nationality</label>
+                            {{ form.nationality }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.religion.id_for_label }}" class="form-label">Religion</label>
+                            {{ form.religion }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.father_name.id_for_label }}" class="form-label">Father's Name</label>
+                            {{ form.father_name }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.mother_name.id_for_label }}" class="form-label">Mother's Name</label>
+                            {{ form.mother_name }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.guardian_name.id_for_label }}" class="form-label">Guardian's Name</label>
+                            {{ form.guardian_name }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.guardian_relation.id_for_label }}" class="form-label">Guardian's Relation</label>
+                            {{ form.guardian_relation }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.guardian_phone.id_for_label }}" class="form-label">Guardian's Phone</label>
+                            {{ form.guardian_phone }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.guardian_address.id_for_label }}" class="form-label">Guardian's Address</label>
+                        {{ form.guardian_address }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.previous_qualification.id_for_label }}" class="form-label">Previous Qualification</label>
+                            {{ form.previous_qualification }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.previous_institution.id_for_label }}" class="form-label">Previous Institution</label>
+                            {{ form.previous_institution }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.previous_marks.id_for_label }}" class="form-label">Previous Marks</label>
+                        {{ form.previous_marks }}
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="profileForm" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $("#id_department").change(function() {
+            var departmentId = $(this).val();
+            $.ajax({
+                url: "{% url 'load_programs' %}",
+                data: {
+                    'department_id': departmentId
+                },
+                success: function(data) {
+                    $("#id_program").html(data);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 
