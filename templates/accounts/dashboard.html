@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Welcome, {{ user.get_full_name }}!</h1>
+    
+    <div class="row">
+        {% if user.is_staff %}
+            <!-- Admin Dashboard -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <a href="{% url 'admin:departments_department_changelist' %}">Manage Departments</a>
+                            </li>
+                            <li class="list-group-item">
+                                <a href="{% url 'admin:courses_course_changelist' %}">Manage Courses</a>
+                            </li>
+                            <li class="list-group-item">
+                                <a href="{% url 'admin:faculty_faculty_changelist' %}">Manage Faculty</a>
+                            </li>
+                            <li class="list-group-item">
+                                <a href="{% url 'admin:students_student_changelist' %}">Manage Students</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- User Dashboard -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">My Profile</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ user.get_full_name }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <a href="{% url 'profile' %}" class="btn btn-primary">Edit Profile</a>
+                </div>
+            </div>
+        </div>
+
+        {% if not user.is_staff %}
+            <!-- Student Dashboard -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">My Courses</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for course in user.student.course.all %}
+                                <li class="list-group-item">{{ course.name }}</li>
+                            {% empty %}
+                                <li class="list-group-item">No courses enrolled</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

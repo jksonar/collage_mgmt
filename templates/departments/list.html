@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Departments{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Departments</h1>
+        {% if user.is_staff %}
+            <a href="{% url 'department_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Department
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        {% for department in departments %}
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">{{ department.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <strong>Code:</strong> {{ department.code }}<br>
+                            <strong>Head:</strong> {{ department.head_of_department }}<br>
+                            <strong>Established:</strong> {{ department.established_date }}
+                        </p>
+                        <a href="{% url 'department_detail' department.pk %}" class="btn btn-info btn-sm">
+                            View Details
+                        </a>
+                        {% if user.is_staff %}
+                            <a href="{% url 'department_update' department.pk %}" class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
+                            <a href="{% url 'department_delete' department.pk %}" class="btn btn-danger btn-sm">
+                                Delete
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No departments found.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

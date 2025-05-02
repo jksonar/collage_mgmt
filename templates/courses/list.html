@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Courses{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Courses</h1>
+        {% if user.is_staff %}
+            <a href="{% url 'course_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Course
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        {% for course in courses %}
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">{{ course.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <strong>Code:</strong> {{ course.code }}<br>
+                            <strong>Department:</strong> {{ course.department.name }}<br>
+                            <strong>Credits:</strong> {{ course.credits }}<br>
+                            <strong>Duration:</strong> {{ course.duration }}
+                        </p>
+                        <a href="{% url 'course_detail' course.pk %}" class="btn btn-info btn-sm">
+                            View Details
+                        </a>
+                        {% if user.is_staff %}
+                            <a href="{% url 'course_update' course.pk %}" class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
+                            <a href="{% url 'course_delete' course.pk %}" class="btn btn-danger btn-sm">
+                                Delete
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No courses found.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

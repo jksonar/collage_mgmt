@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ department.name }}</h1>
+        {% if user.is_staff %}
+            <div>
+                <a href="{% url 'department_update' department.pk %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <a href="{% url 'department_delete' department.pk %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">Department Information</h5>
+                    <p><strong>Code:</strong> {{ department.code }}</p>
+                    <p><strong>Head of Department:</strong> {{ department.head_of_department }}</p>
+                    <p><strong>Established Date:</strong> {{ department.established_date }}</p>
+                    <p><strong>Contact Email:</strong> {{ department.contact_email }}</p>
+                    <p><strong>Contact Phone:</strong> {{ department.contact_phone }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="card-title">Description</h5>
+                    <p>{{ department.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'department_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Departments
+        </a>
+    </div>
+</div>
+{% endblock %} 
