@@ -7,133 +7,150 @@ from .forms import AttendanceForm, AttendanceFilterForm
 from students.models import Student
 from courses.models import Course
 from faculty.models import Faculty
+from departments.models import Department
+from django.utils import timezone
 
 def is_faculty(user):
-    return user.profile.is_faculty
+    return user.groups.filter(name='Faculty').exists()
 
 def is_admin(user):
-    return user.profile.is_admin
+    return user.groups.filter(name='Admin').exists()
 
 @login_required
-@user_passes_test(lambda u: u.profile.is_faculty or u.profile.is_admin)
-def attendance_list(request):
-    form = AttendanceFilterForm(request.GET or None)
-    attendances = Attendance.objects.all()
+@user_passes_test(is_faculty)
+def faculty_attendance(request, pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+    attendances = Attendance.objects.filter(recorded_by=faculty)
+    return render(request, 'attendance/faculty_attendance.html', {
+        'faculty': faculty,
+        'attendances': attendances
+    })
 
-    if form.is_valid():
-        course = form.cleaned_data.get('course')
-        date = form.cleaned_data.get('date')
-        status = form.cleaned_data.get('status')
-
-        if course:
-            attendances = attendances.filter(course=course)
-        if date:
-            attendances = attendances.filter(date=date)
-        if status:
-            attendances = attendances.filter(status=status)
-
-    if request.user.profile.is_faculty:
-        faculty = request.user.faculty
-        attendances = attendances.filter(recorded_by=faculty)
-
-    return render(request, 'attendance/list.html', {
-        'attendances': attendances,
+@login_required
+@user_passes_test(is_faculty)
+def take_attendance(request, pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+    if request.method == 'POST':
+        form = AttendanceForm(request.POST)
+        if form.is_valid():
+            attendance = form.save(commit=False)
+            attendance.recorded_by = faculty
+            attendance.save()
+            messages.success(request, 'Attendance recorded successfully.')
+            return redirect('attendance:faculty_attendance', pk=faculty.pk)
+    else:
+        form = AttendanceForm()
+    return render(request, 'attendance/take_attendance.html', {
+        'faculty': faculty,
         'form': form
     })
 
 @login_required
 @user_passes_test(is_faculty)
-def take_attendance(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
-    faculty = request.user.faculty
-
-    if request.method == 'POST':
-        form = AttendanceForm(request.POST, course=course)
-        if form.is_valid():
-            with transaction.atomic():
-                for student in form.cleaned_data['students']:
-                    status = form.cleaned_data[f'status_{student.id}']
-                    remarks = form.cleaned_data[f'remarks_{student.id}']
-                    
-                    Attendance.objects.create(
-                        student=student,
-                        course=course,
-                        status=status,
-                        remarks=remarks,
-                        recorded_by=faculty
-                    )
-            messages.success(request, 'Attendance recorded successfully.')
-            return redirect('attendance_list')
-    else:
-        form = AttendanceForm(course=course)
-
-    return render(request, 'attendance/take.html', {
-        'form': form,
-        'course': course
-    })
-
-@login_required
-@user_passes_test(is_faculty)
-def edit_attendance(request, attendance_id):
-    attendance = get_object_or_404(Attendance, id=attendance_id)
-    
-    if request.user.profile.is_faculty and attendance.recorded_by != request.user.faculty:
-        messages.error(request, 'You do not have permission to edit this attendance.')
-        return redirect('attendance_list')
-
+def edit_attendance(request, pk, attendance_pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+    attendance = get_object_or_404(Attendance, pk=attendance_pk, recorded_by=faculty)
     if request.method == 'POST':
         form = AttendanceForm(request.POST, instance=attendance)
         if form.is_valid():
             form.save()
             messages.success(request, 'Attendance updated successfully.')
-            return redirect('attendance_list')
+            return redirect('attendance:faculty_attendance', pk=faculty.pk)
     else:
         form = AttendanceForm(instance=attendance)
-
-    return render(request, 'attendance/edit.html', {
-        'form': form,
-        'attendance': attendance
-    })
-
-@login_required
-@user_passes_test(is_faculty)
-def verify_attendance(request, attendance_id):
-    attendance = get_object_or_404(Attendance, id=attendance_id)
-    faculty = request.user.faculty
-
-    if attendance.is_verified:
-        messages.warning(request, 'This attendance is already verified.')
-    else:
-        attendance.verify(faculty)
-        messages.success(request, 'Attendance verified successfully.')
-
-    return redirect('attendance_list')
-
-@login_required
-def student_attendance(request):
-    if not request.user.profile.is_student:
-        messages.error(request, 'You do not have permission to view this page.')
-        return redirect('home')
-
-    student = request.user.student
-    attendances = Attendance.objects.filter(student=student)
-    
-    form = AttendanceFilterForm(request.GET or None)
-    if form.is_valid():
-        course = form.cleaned_data.get('course')
-        date = form.cleaned_data.get('date')
-        status = form.cleaned_data.get('status')
-
-        if course:
-            attendances = attendances.filter(course=course)
-        if date:
-            attendances = attendances.filter(date=date)
-        if status:
-            attendances = attendances.filter(status=status)
-
-    return render(request, 'attendance/student_list.html', {
-        'attendances': attendances,
+    return render(request, 'attendance/edit_attendance.html', {
+        'faculty': faculty,
+        'attendance': attendance,
         'form': form
     })
+
+@login_required
+def student_attendance(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+    attendances = Attendance.objects.filter(student=student)
+    return render(request, 'attendance/student_attendance.html', {
+        'student': student,
+        'attendances': attendances
+    })
+
+@login_required
+def student_course_attendance(request, pk, course_pk):
+    student = get_object_or_404(Student, pk=pk)
+    course = get_object_or_404(Course, pk=course_pk)
+    attendances = Attendance.objects.filter(student=student, course=course)
+    return render(request, 'attendance/student_course_attendance.html', {
+        'student': student,
+        'course': course,
+        'attendances': attendances
+    })
+
+@login_required
+def course_attendance(request, pk):
+    course = get_object_or_404(Course, pk=pk)
+    attendances = Attendance.objects.filter(course=course)
+    return render(request, 'attendance/course_attendance.html', {
+        'course': course,
+        'attendances': attendances
+    })
+
+@login_required
+def course_date_attendance(request, pk, date):
+    course = get_object_or_404(Course, pk=pk)
+    attendances = Attendance.objects.filter(course=course, date=date)
+    return render(request, 'attendance/course_date_attendance.html', {
+        'course': course,
+        'date': date,
+        'attendances': attendances
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def department_attendance(request, pk):
+    department = get_object_or_404(Department, pk=pk)
+    attendances = Attendance.objects.filter(course__department=department)
+    return render(request, 'attendance/department_attendance.html', {
+        'department': department,
+        'attendances': attendances
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def department_date_attendance(request, pk, date):
+    department = get_object_or_404(Department, pk=pk)
+    attendances = Attendance.objects.filter(course__department=department, date=date)
+    return render(request, 'attendance/department_date_attendance.html', {
+        'department': department,
+        'date': date,
+        'attendances': attendances
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def attendance_reports(request):
+    if request.method == 'POST':
+        form = AttendanceFilterForm(request.POST)
+        if form.is_valid():
+            # Generate report based on form data
+            pass
+    else:
+        form = AttendanceFilterForm()
+    return render(request, 'attendance/reports.html', {'form': form})
+
+@login_required
+@user_passes_test(is_admin)
+def generate_report(request):
+    if request.method == 'POST':
+        form = AttendanceFilterForm(request.POST)
+        if form.is_valid():
+            # Generate and save report
+            messages.success(request, 'Report generated successfully.')
+            return redirect('attendance:reports')
+    return redirect('attendance:reports')
+
+@login_required
+@user_passes_test(is_admin)
+def download_report(request, report_pk):
+    # Implement report download logic
+    pass
 
 # Create your views here.
